@@ -28,6 +28,8 @@ import org.elasticsearch.client.RestClientBuilder.HttpClientConfigCallback;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.xcontent.XContentType;
 
+import com.google.gson.JsonParser;
+
 public class ElasticSearchConsumer {
 	
 	private String hostName = "";
@@ -57,7 +59,8 @@ public class ElasticSearchConsumer {
 			
 			for(ConsumerRecord<String, String> record : records) {
 				try {
-					IndexRequest req = new IndexRequest("twitter", "tweet").source(record.value(), XContentType.JSON);
+					String tweetID = getIdFromTweet(record.value());
+					IndexRequest req = new IndexRequest("twitter", "tweet", tweetID).source(record.value(), XContentType.JSON);
 					IndexResponse res = client.index(req, RequestOptions.DEFAULT);
 					System.out.println(res.getId());
 				} catch (IOException io) {
@@ -65,6 +68,12 @@ public class ElasticSearchConsumer {
 				}
 			}	
 		}
+	}
+	
+	private JsonParser jsonParser = new JsonParser();
+	private String getIdFromTweet(String tweetJSON) {
+		
+		return jsonParser.parse(tweetJSON).getAsJsonObject().get("id_str").getAsString();
 	}
 	
 	private KafkaConsumer<String, String> getKafkaConsumer() {
